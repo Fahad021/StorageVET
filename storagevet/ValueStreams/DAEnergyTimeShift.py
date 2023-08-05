@@ -107,13 +107,15 @@ class DAEnergyTimeShift(ValueStream):
             keys are the file name that the df will be saved with
 
         """
-        df_dict = dict()
         energy_price = time_series_data.loc[:, 'Energy Price ($/kWh)'].to_frame()
         energy_price.loc[:, 'date'] = time_series_data.index.date
         energy_price.loc[:, 'hour'] = (time_series_data.index + pd.Timedelta('1s')).hour + 1  # hour ending
         energy_price = energy_price.reset_index(drop=True)
-        df_dict['energyp_map'] = energy_price.pivot_table(values='Energy Price ($/kWh)', index='hour', columns='date')
-        return df_dict
+        return {
+            'energyp_map': energy_price.pivot_table(
+                values='Energy Price ($/kWh)', index='hour', columns='date'
+            )
+        }
 
     def proforma_report(self, opt_years, apply_inflation_rate_func, fill_forward_func, results):
         """ Calculates the proforma that corresponds to participation in this value stream

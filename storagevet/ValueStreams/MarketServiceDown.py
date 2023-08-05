@@ -190,8 +190,10 @@ class MarketServiceDown(ValueStream):
             less energy than expected
 
         """
-        provided = self.variables['ch_less']*self.dt + self.variables['dis_more']*self.duration
-        return provided
+        return (
+            self.variables['ch_less'] * self.dt
+            + self.variables['dis_more'] * self.duration
+        )
 
     def timeseries_report(self):
         """ Summaries the optimization results for this Value Stream.

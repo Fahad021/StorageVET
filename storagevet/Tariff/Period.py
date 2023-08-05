@@ -57,7 +57,7 @@ class Period:
         Pretty print
 
         """
-        print("Period " + str(self.number) + "-------------------------=")
+        print(f"Period {str(self.number)}-------------------------=")
 
     def get_highest_rate(self):
         """

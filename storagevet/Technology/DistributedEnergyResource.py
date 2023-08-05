@@ -364,6 +364,7 @@ class DER:
         if not self.zero_column_name():
             return None
 
-        pro_forma = pd.DataFrame({self.zero_column_name(): -self.get_capex(solution=True)}, index=['CAPEX Year'])
-
-        return pro_forma
+        return pd.DataFrame(
+            {self.zero_column_name(): -self.get_capex(solution=True)},
+            index=['CAPEX Year'],
+        )

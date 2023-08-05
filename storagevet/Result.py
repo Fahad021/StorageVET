@@ -126,7 +126,7 @@ class Result:
         self.technology_summary = pd.DataFrame()
 
         # initialize the dictionary that will hold all the drill down plots
-        self.drill_down_dict = dict()
+        self.drill_down_dict = {}
 
     def collect_results(self):
         """ Collects any optimization variable solutions or user inputs that will be used for drill down
@@ -223,18 +223,19 @@ class Result:
             Then save the dataframe to a csv file.
 
         """
-        if cls.sensitivity:
-            for key, results_object in cls.instances.items():
-                if not key:
-                    for npv_col in results_object.cost_benefit_analysis.npv.columns:
-                        cls.sensitivity_df.loc[:, npv_col] = 0
-                this_npv = results_object.cost_benefit_analysis.npv.reset_index(drop=True, inplace=False)
-                if this_npv.empty:
-                    # then no optimization ran, so there is no NPV
-                    continue
-                this_npv.index = pd.RangeIndex(start=key, stop=key + 1, step=1)
-                cls.sensitivity_df.update(this_npv)
-            cls.sensitivity_df.to_csv(path_or_buf=Path(cls.dir_abs_path, 'sensitivity_summary.csv'))
+        if not cls.sensitivity:
+            return
+        for key, results_object in cls.instances.items():
+            if not key:
+                for npv_col in results_object.cost_benefit_analysis.npv.columns:
+                    cls.sensitivity_df.loc[:, npv_col] = 0
+            this_npv = results_object.cost_benefit_analysis.npv.reset_index(drop=True, inplace=False)
+            if this_npv.empty:
+                # then no optimization ran, so there is no NPV
+                continue
+            this_npv.index = pd.RangeIndex(start=key, stop=key + 1, step=1)
+            cls.sensitivity_df.update(this_npv)
+        cls.sensitivity_df.to_csv(path_or_buf=Path(cls.dir_abs_path, 'sensitivity_summary.csv'))
 
     @classmethod
     def proforma_df(cls, instance=0):

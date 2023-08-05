@@ -117,9 +117,7 @@ class NonspinningReserve(MarketServiceDown):
         return report
 
     def min_regulation_down(self):
-        if self.ts_constraints:
-            return self.min
-        return super().min_regulation_down()
+        return self.min if self.ts_constraints else super().min_regulation_down()
 
     def max_participation_is_defined(self):
         return hasattr(self, 'max')

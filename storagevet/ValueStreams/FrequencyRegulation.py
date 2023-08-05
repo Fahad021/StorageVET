@@ -178,10 +178,6 @@ class FrequencyRegulation(MarketServiceUpAndDown):
                 self.p_regu = np.divide(fr_price, 2)
                 self.p_regd = np.divide(fr_price, 2)
 
-            try:
-                self.price = time_series_data.loc[:, 'DA Price ($/kWh)']
-            except KeyError:
-                pass
         else:
             try:
                 self.p_regu = time_series_data.loc[:, 'Reg Up Price ($/kW)']
@@ -193,15 +189,13 @@ class FrequencyRegulation(MarketServiceUpAndDown):
             except KeyError:
                 pass
 
-            try:
-                self.price = time_series_data.loc[:, 'DA Price ($/kWh)']
-            except KeyError:
-                pass
+        try:
+            self.price = time_series_data.loc[:, 'DA Price ($/kWh)']
+        except KeyError:
+            pass
 
     def min_regulation_up(self):
-        if self.u_ts_constraints:
-            return self.regu_min
-        return super().min_regulation_up()
+        return self.regu_min if self.u_ts_constraints else super().min_regulation_up()
 
     def min_regulation_down(self):
         if self.d_ts_constraints:

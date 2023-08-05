@@ -109,9 +109,9 @@ class ResourceAdequacy(ValueStream):
         self.schedule_events()
 
         self.qc = self.qualifying_commitment(der_lst, self.length)
-        total_time_intervals = len(self.event_intervals)
-
         if self.dispmode:
+            total_time_intervals = len(self.event_intervals)
+
             # create dispatch power constraint
             # charge power should be 0, while discharge should be be the qualifying commitment for the times that correspond to the RA event
 
@@ -191,10 +191,7 @@ class ResourceAdequacy(ValueStream):
         event_start = pd.Series(np.zeros(len(self.system_load)), index=self.system_load.index)  # used to set energy constraints
         # odd intervals straddle peak & even intervals have extra interval after peak
         steps = self.length / self.dt
-        if steps % 2:  # this is true if mod(steps/2) is not 0 --> if steps is odd
-            presteps = np.floor_divide(steps, 2)
-        else:  # steps is even
-            presteps = (steps / 2) - 1
+        presteps = np.floor_divide(steps, 2) if steps % 2 else (steps / 2) - 1
         poststeps = presteps + 1
 
         for peak in self.peak_intervals:
@@ -202,11 +199,8 @@ class ResourceAdequacy(ValueStream):
             last_int = peak + pd.Timedelta(poststeps * self.dt, unit='h')
 
             # handle edge RA event intervals
-            if first_int < event_interval.index[0]:  # RA event starts before the first time-step in the system load
-                first_int = event_interval.index[0]
-            if last_int > event_interval.index[-1]:  # RA event ends after the last time-step in the system load
-                last_int = event_interval.index[-1]
-
+            first_int = max(first_int, event_interval.index[0])
+            last_int = min(last_int, event_interval.index[-1])
             event_range = pd.date_range(start=first_int, end=last_int, periods=steps)
             event_interval.loc[event_range] = 1
             event_start.loc[first_int] = 1
@@ -224,8 +218,9 @@ class ResourceAdequacy(ValueStream):
         NOTE: DR has this same method too  -HN
 
         """
-        qc = sum(der_instance.qualifying_capacity(length) for der_instance in der_lst)
-        return qc
+        return sum(
+            der_instance.qualifying_capacity(length) for der_instance in der_lst
+        )
 
     def proforma_report(self, opt_years, apply_inflation_rate_func, fill_forward_func, results):
         """ Calculates the proforma that corresponds to participation in this value stream

@@ -100,12 +100,22 @@ def apply_growth(source, rate, source_year, yr, freq):
     if (not source_leap) and new_leap:   # need to add leap day
         # if source is not leap year but desired year is, copy data from previous day
         new.index = new.index + pd.DateOffset(years=years)
-        leap_ind = pd.date_range(start='02/29/'+str(yr), end='03/01/'+str(yr), freq=freq, closed='left')
+        leap_ind = pd.date_range(
+            start=f'02/29/{str(yr)}',
+            end=f'03/01/{str(yr)}',
+            freq=freq,
+            closed='left',
+        )
         leap = pd.Series(new[leap_ind - pd.DateOffset(days=1)].values, index=leap_ind, name=new.name)
         new = pd.concat([new, leap])
         new = new.sort_index()
     elif source_leap and (not new_leap):  # need to remove leap day
-        leap_ind = pd.date_range(start='02/29/'+str(source_year), end='03/01/'+str(source_year), freq=freq, closed='left')
+        leap_ind = pd.date_range(
+            start=f'02/29/{str(source_year)}',
+            end=f'03/01/{str(source_year)}',
+            freq=freq,
+            closed='left',
+        )
         new = new[~new.index.isin(leap_ind)]
         new.index = new.index + pd.DateOffset(years=years)
     else:

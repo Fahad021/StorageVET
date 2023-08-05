@@ -138,8 +138,7 @@ class UserConstraints(ValueStream):
         # concat energy and power together
         power_df = self.user_power if not self.user_power.empty else None
         energy_df = self.user_energy if not self.user_energy.empty else None
-        report = pd.concat([power_df, energy_df], axis=1)
-        return report
+        return pd.concat([power_df, energy_df], axis=1)
 
     def proforma_report(self, opt_years, apply_inflation_rate_func, fill_forward_func, results):
         """ Calculates the proforma that corresponds to participation in this value stream
@@ -197,7 +196,4 @@ class UserConstraints(ValueStream):
         Returns: Series, with its values changed
 
         """
-        if (array >= 0).any():
-            return array
-        else:
-            return -1*array
+        return array if (array >= 0).any() else -1*array

@@ -328,9 +328,16 @@ class EnergyStorage(DER):
         }
         # add startup objective costs
         if self.incl_startup:
-            costs.update({
-                self.name + ' ch_startup': cvx.sum(self.variables_dict['start_c']) * self.p_start_ch * annuity_scalar,
-                self.name + ' dis_startup': cvx.sum(self.variables_dict['start_d']) * self.p_start_dis * annuity_scalar})
+            costs |= {
+                self.name
+                + ' ch_startup': cvx.sum(self.variables_dict['start_c'])
+                * self.p_start_ch
+                * annuity_scalar,
+                self.name
+                + ' dis_startup': cvx.sum(self.variables_dict['start_d'])
+                * self.p_start_dis
+                * annuity_scalar,
+            }
 
         return costs
 
@@ -401,7 +408,7 @@ class EnergyStorage(DER):
             for day in sub.index.dayofyear.unique():
                 day_mask = (day == sub.index.dayofyear)
                 constraint_list += [cvx.NonPos(cvx.sum(dis[day_mask] + udis[day_mask]) * self.dt - self.ene_max_rated * self.daily_cycle_limit)]
-        elif self.daily_cycle_limit and size < 24:
+        elif self.daily_cycle_limit:
             TellUser.info('Daily cycle limit did not apply as optimization window is less than 24 hours.')
 
         # note: cannot operate startup without binary
@@ -474,8 +481,7 @@ class EnergyStorage(DER):
         dispatch.loc[:, 'date'] = self.variables_df.index.date
         dispatch.loc[:, 'hour'] = (self.variables_df.index + pd.Timedelta('1s')).hour + 1
         dispatch = dispatch.reset_index(drop=True)
-        dispatch_map = dispatch.pivot_table(values='Power', index='hour', columns='date')
-        return dispatch_map
+        return dispatch.pivot_table(values='Power', index='hour', columns='date')
 
     def proforma_report(self, apply_inflation_rate_func, fill_forward_func, results):
         """ Calculates the proforma that corresponds to participation in this value stream
@@ -532,5 +538,4 @@ class EnergyStorage(DER):
         Returns: a DataFrame
 
         """
-        results = pd.DataFrame(index=self.variables_df.index)
-        return results
+        return pd.DataFrame(index=self.variables_df.index)

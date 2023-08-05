@@ -62,8 +62,7 @@ class API:
         Prints necessary identifying information of all tariffs that show from result page on OpenEI
 
         """
-        count = 1
-        for item in self.data["items"]:
+        for count, item in enumerate(self.data["items"], start=1):
             print("---------------------------------------------------", count)
             print("Utility.......", item["utility"])
             print("Name..........", item["name"])
@@ -76,7 +75,6 @@ class API:
             if "description" in item:
                 print("Description...", item["description"])
             print(" ")
-            count += 1
 
     def reset(self):
         """
@@ -106,9 +104,8 @@ class API:
         if "energyratestructure" in self.tariff["items"][0]:
             # print(self.tariff["items"][0]["energyratestructure"])
             self.energyratestructure = self.tariff["items"][0]["energyratestructure"]
-            pcount = 1  # period count
             tcount = 1  # tier count
-            for p in self.energyratestructure:
+            for pcount, p in enumerate(self.energyratestructure, start=1):
                 self.energy_period_list.append(period.Period(pcount))
                 for i in p:
                     if "max" in i:
@@ -130,7 +127,6 @@ class API:
                     tcount += 1
                     self.reset()
                 tcount = 1
-                pcount += 1
 
     def print_energy_structure(self):
         """
@@ -138,9 +134,7 @@ class API:
 
         """
         pprint.pprint(self.tariff)
-        if not self.energy_period_list:  # if list is empty it is not printed
-            pass
-        else:
+        if self.energy_period_list:
             print(" ")
             print("Tiered Energy Usage Charge Structure")
             for period in self.energy_period_list:
@@ -153,17 +147,13 @@ class API:
         self.energyweekdayschedule = self.tariff["items"][0]["energyweekdayschedule"]
         self.energyweekendschedule = self.tariff["items"][0]["energyweekendschedule"]
         for year in self.energyweekdayschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
             print(year)
         print('=----------------------------------------------------------------------=')
         for year in self.energyweekendschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
             print(year)
 
     def dates(self, dates, weekday):
@@ -196,20 +186,14 @@ class API:
                         start = month
                         end = month
                         switch = True
-                        month += 1
-                    else:
-                        month += 1
-
-                # switch is True if start has been set
+                    month += 1
                 elif switch is True:
                     if period in row:
                         end = month
-                        month += 1
                     else:
                         dates.append([period, start, end, period])
                         switch = False
-                        month += 1
-
+                    month += 1
                 # if for loop is on last loop, append what it has
                 if month >= 13:
                     # if period was never given months it is not appended to list
@@ -223,11 +207,8 @@ class API:
                     month = 1
                     index = 0
 
-                # if the next row is different from the current row it will append the current period and start a new one
                 if schedule[index] != row:
-                    if start == 0:
-                        continue
-                    else:
+                    if start != 0:
                         dates.append([period, start, end, period])
                         switch = False
 
@@ -264,34 +245,26 @@ class API:
                 time += 1
                 # case 0: start month has not yet been found, once found goes to case 1
                 if switch == 0:
-                    if hour == period:
-                        start = time
-                        end = time
-                        switch = 1
-                    else:
+                    if hour != period:
                         continue
 
-                # case 1: start month is set, if hour is equal to period there is possible gap which goes to case 2
+                    start = time
+                    end = time
+                    switch = 1
                 elif switch == 1:
                     if hour == period:
                         end = time
-                    else:
-                        if start == 1:
-                            continue
-                        else:
-                            ex_start = end
-                            switch = 2
+                    elif start != 1:
+                        ex_start = end
+                        switch = 2
 
-                # case 2: if there is a gap between a period, sets ex_end goes to case 3
                 elif switch == 2:
-                    if hour == period:
-                        end = time
-                        ex_end = time
-                        switch = 3
-                    else:
+                    if hour != period:
                         continue
 
-                # case 3: sets end of gap
+                    end = time
+                    ex_end = time
+                    switch = 3
                 elif switch == 3:
                     if hour == period:
                         end = time
@@ -331,10 +304,8 @@ class API:
         """
         self.remove_duplicates(dates)
         dates.sort(key=self.take_second)  # sorts list based on second element (starting month)
-        count = 1
-        for p in dates:
+        for count, p in enumerate(dates, start=1):
             p[0] = count
-            count += 1
             p.append(p.pop(3))  # moves rate to end of list
 
     def remove_duplicates(self, dates):

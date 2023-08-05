@@ -102,8 +102,7 @@ class Battery(EnergyStorage):
         #new_ene_max = max(self.ene_max_rated*(1-self.degrade_perc), 0)
         # useful_energy_fade_percent = self.degrade_perc, 0
         soh_change = self.degrade_perc * (1 - self.eol_condition)
-        new_ene_max = max(self.ene_max_rated * (1 - soh_change), 0)
-        return new_ene_max
+        return max(self.ene_max_rated * (1 - soh_change), 0)
 
     def calc_degradation(self, opt_period, start_dttm, last_dttm):
         """ calculate degradation percent based on yearly degradation and cycle degradation
@@ -120,72 +119,73 @@ class Battery(EnergyStorage):
         """
 
         # time difference between time stamps converted into years multiplied by yearly degrate rate
-        if self.incl_cycle_degrade:
-            cycle_degrade = 0
-            yearly_degradation = 0
+        if not self.incl_cycle_degrade:
+            return
+        cycle_degrade = 0
+        yearly_degradation = 0
 
-            if not isinstance(opt_period, str):
-                # calculate degradation due to cycling iff energy values are given
-                energy_series = self.variables_df.loc[start_dttm:last_dttm, 'ene']
-                # Find the effective energy capacity
-                eff_e_cap = self.degraded_energy_capacity()
-
-                #If using rainflow counting package uncomment following few lines
-                # use rainflow counting algorithm to get cycle counts
-                # cycle_counts = rainflow.count_cycles(energy_series, ndigits=4)
-                #
-                # aux_df = pd.DataFrame(cycle_counts, columns=['DoD', 'N_cycles'])
-                # aux_df['Opt window'] = opt_period
-                #
-                # # sort cycle counts into user inputed cycle life bins
-                # digitized_cycles = np.searchsorted(self.cycle_life['Cycle Depth Upper Limit'],[min(i[0]/eff_e_cap, 1) for i in cycle_counts], side='left')
-
-                # use rainflow extract function to get information on each cycle
-                cycle_extract=list(rainflow.extract_cycles(energy_series))
-                aux_df = pd.DataFrame(cycle_extract, columns=['rng', 'mean','count','i_start','i_end'])
-                aux_df['Opt window'] = opt_period
-
-                # sort cycle counts into user inputed cycle life bins
-                digitized_cycles = np.searchsorted(self.cycle_life['Cycle Depth Upper Limit'],[min(i[0] / eff_e_cap, 1) for i in cycle_extract], side='left')
-                aux_df['Input_cycle_DoD_mapping'] = np.array(self.cycle_life['Cycle Depth Upper Limit'][digitized_cycles]*eff_e_cap)
-                aux_df['Cycle Life Value'] = np.array(self.cycle_life['Cycle Life Value'][digitized_cycles] )
-
-                self.counted_cycles.append(aux_df.copy())
-                # sum up number of cycles for all cycle counts in each bin
-                cycle_sum = self.cycle_life.loc[:, :]
-                cycle_sum.loc[:, 'cycles'] = 0
-                for i in range(len(cycle_extract)):
-                    cycle_sum.loc[digitized_cycles[i], 'cycles'] += cycle_extract[i][2]
-
-                # sum across bins to get total degrade percent
-                # 1/cycle life value is degrade percent for each cycle
-                cycle_degrade = np.dot(1/cycle_sum['Cycle Life Value'], cycle_sum.cycles)
-
-            if start_dttm is not None and last_dttm is not None:
-                # add the yearly degredation linearly to the # of years from START_DTTM to (END_DTTM + dt)
-                days_in_year = 366 if start_dttm.year else 365
-                portion_of_year = (last_dttm + pd.Timedelta(self.dt, unit='h') - start_dttm) / pd.Timedelta(days_in_year, unit='d')
-                yearly_degradation = self.yearly_degrade * portion_of_year
-
-            # add the degradation due to time passing and cycling for total degradation
-            degrade_percent = cycle_degrade + yearly_degradation
-
-            # record the degradation
-            # the total degradation after optimization OPT_PERIOD must also take into account the
-            # degradation that occurred before the battery was in operation (which we saved as SELF.DEGRADE_PERC)
-            self.degrade_data.loc[opt_period, 'degradation'] = degrade_percent + self.degrade_perc
-            self.degrade_perc += degrade_percent
-
-            soh_change = self.degrade_perc * (1 - self.eol_condition)
-            self.soh = self.degrade_data.loc[opt_period, 'soh'] = self.soh  - soh_change
-
-            # apply degradation to technology (affects physical_constraints['ene_max_rated'] and control constraints)
+        if not isinstance(opt_period, str):
+            # calculate degradation due to cycling iff energy values are given
+            energy_series = self.variables_df.loc[start_dttm:last_dttm, 'ene']
+            # Find the effective energy capacity
             eff_e_cap = self.degraded_energy_capacity()
-            TellUser.info(f"BATTERY - {self.name}: effective energy capacity is now {truncate_float(eff_e_cap)} kWh " +
-                          f"({truncate_float(100*(1 - (self.ene_max_rated-eff_e_cap)/self.ene_max_rated), 7)}% of original)")
-            self.degrade_data.loc[opt_period, 'effective energy capacity'] = eff_e_cap
-            self.effective_soe_max = eff_e_cap * self.ulsoc
-            self.effective_soe_min = eff_e_cap * self.llsoc
+
+            #If using rainflow counting package uncomment following few lines
+            # use rainflow counting algorithm to get cycle counts
+            # cycle_counts = rainflow.count_cycles(energy_series, ndigits=4)
+            #
+            # aux_df = pd.DataFrame(cycle_counts, columns=['DoD', 'N_cycles'])
+            # aux_df['Opt window'] = opt_period
+            #
+            # # sort cycle counts into user inputed cycle life bins
+            # digitized_cycles = np.searchsorted(self.cycle_life['Cycle Depth Upper Limit'],[min(i[0]/eff_e_cap, 1) for i in cycle_counts], side='left')
+
+            # use rainflow extract function to get information on each cycle
+            cycle_extract=list(rainflow.extract_cycles(energy_series))
+            aux_df = pd.DataFrame(cycle_extract, columns=['rng', 'mean','count','i_start','i_end'])
+            aux_df['Opt window'] = opt_period
+
+            # sort cycle counts into user inputed cycle life bins
+            digitized_cycles = np.searchsorted(self.cycle_life['Cycle Depth Upper Limit'],[min(i[0] / eff_e_cap, 1) for i in cycle_extract], side='left')
+            aux_df['Input_cycle_DoD_mapping'] = np.array(self.cycle_life['Cycle Depth Upper Limit'][digitized_cycles]*eff_e_cap)
+            aux_df['Cycle Life Value'] = np.array(self.cycle_life['Cycle Life Value'][digitized_cycles] )
+
+            self.counted_cycles.append(aux_df.copy())
+            # sum up number of cycles for all cycle counts in each bin
+            cycle_sum = self.cycle_life.loc[:, :]
+            cycle_sum.loc[:, 'cycles'] = 0
+            for i in range(len(cycle_extract)):
+                cycle_sum.loc[digitized_cycles[i], 'cycles'] += cycle_extract[i][2]
+
+            # sum across bins to get total degrade percent
+            # 1/cycle life value is degrade percent for each cycle
+            cycle_degrade = np.dot(1/cycle_sum['Cycle Life Value'], cycle_sum.cycles)
+
+        if start_dttm is not None and last_dttm is not None:
+            # add the yearly degredation linearly to the # of years from START_DTTM to (END_DTTM + dt)
+            days_in_year = 366 if start_dttm.year else 365
+            portion_of_year = (last_dttm + pd.Timedelta(self.dt, unit='h') - start_dttm) / pd.Timedelta(days_in_year, unit='d')
+            yearly_degradation = self.yearly_degrade * portion_of_year
+
+        # add the degradation due to time passing and cycling for total degradation
+        degrade_percent = cycle_degrade + yearly_degradation
+
+        # record the degradation
+        # the total degradation after optimization OPT_PERIOD must also take into account the
+        # degradation that occurred before the battery was in operation (which we saved as SELF.DEGRADE_PERC)
+        self.degrade_data.loc[opt_period, 'degradation'] = degrade_percent + self.degrade_perc
+        self.degrade_perc += degrade_percent
+
+        soh_change = self.degrade_perc * (1 - self.eol_condition)
+        self.soh = self.degrade_data.loc[opt_period, 'soh'] = self.soh  - soh_change
+
+        # apply degradation to technology (affects physical_constraints['ene_max_rated'] and control constraints)
+        eff_e_cap = self.degraded_energy_capacity()
+        TellUser.info(f"BATTERY - {self.name}: effective energy capacity is now {truncate_float(eff_e_cap)} kWh " +
+                      f"({truncate_float(100*(1 - (self.ene_max_rated-eff_e_cap)/self.ene_max_rated), 7)}% of original)")
+        self.degrade_data.loc[opt_period, 'effective energy capacity'] = eff_e_cap
+        self.effective_soe_max = eff_e_cap * self.ulsoc
+        self.effective_soe_min = eff_e_cap * self.llsoc
 
     def constraints(self, mask, **kwargs):
         """Default build constraint list method. Used by services that do not

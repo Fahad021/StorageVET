@@ -64,8 +64,7 @@ class API:
         Prints necessary identifying information of all tariffs that show from result page on OpenEI
 
         """
-        count = 1
-        for item in self.data["items"]:
+        for count, item in enumerate(self.data["items"], start=1):
             print("---------------------------------------------------", count)
             print("Utility.......", item["utility"])
             print("Name..........", item["name"])
@@ -78,7 +77,6 @@ class API:
             if "description" in item:
                 print("Description...", item["description"])
             print(" ")
-            count += 1
 
     def reset(self):
         """
@@ -108,9 +106,8 @@ class API:
         if "energyratestructure" in self.tariff["items"][0]:
             # print(self.tariff["items"][0]["energyratestructure"])
             self.energyratestructure = self.tariff["items"][0]["energyratestructure"]
-            pcount = 1  # period count
             tcount = 1  # tier count
-            for p in self.energyratestructure:
+            for pcount, p in enumerate(self.energyratestructure, start=1):
                 self.energy_period_list.append(period.Period(pcount))
                 for i in p:
                     if "max" in i:
@@ -132,7 +129,6 @@ class API:
                     tcount += 1
                     self.reset()
                 tcount = 1
-                pcount += 1
 
     def print_energy_structure(self):
         """
@@ -140,9 +136,7 @@ class API:
 
         """
         pprint.pprint(self.tariff)
-        if not self.energy_period_list:  # if list is empty it is not printed
-            pass
-        else:
+        if self.energy_period_list:
             print(" ")
             print("Tiered Energy Usage Charge Structure")
             for period in self.energy_period_list:
@@ -155,17 +149,13 @@ class API:
         self.energyweekdayschedule = self.tariff["items"][0]["energyweekdayschedule"]
         self.energyweekendschedule = self.tariff["items"][0]["energyweekendschedule"]
         for year in self.energyweekdayschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
             print(year)
         print('=----------------------------------------------------------------------=')
         for year in self.energyweekendschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
             print(year)
 
     def calendar(self):
@@ -269,8 +259,7 @@ class API:
 
         # write all periods conditional formatting in weekday schedule
         x = 0
-        y = 0
-        for month in self.energyweekdayschedule:
+        for y, month in enumerate(self.energyweekdayschedule):
             for hour in month:
                 if hour == 1:
                     wksht_weekday.write(1 + y, 1 + x, hour, cond_yellow)
@@ -288,8 +277,6 @@ class API:
                     wksht_weekday.write(1 + y, 1 + x, hour, cond_else)
                 x += 1
             x = 0
-            y += 1
-
         # -------------------- weekend --------------------
         # write hours in header
         for i in range(len(hours)):
@@ -303,8 +290,7 @@ class API:
 
         # write all periods with conditional formatting in weekend schedule
         x = 0
-        y = 0
-        for month in self.energyweekendschedule:
+        for y, month in enumerate(self.energyweekendschedule):
             for hour in month:
                 if hour == 1:
                     wksht_weekend.write(1 + y, 1 + x, hour, cond_yellow)
@@ -322,8 +308,6 @@ class API:
                     wksht_weekend.write(1 + y, 1 + x, hour, cond_else)
                 x += 1
             x = 0
-            y += 1
-
         # -------------------- rates --------------------
         # write period and tiers in header
         header = ['Period', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5', 'Tier 6', 'Tier 7', 'Tier 8']
@@ -332,16 +316,13 @@ class API:
         wksht_rates.set_column(0, 0, 6.14, center)
         wksht_rates.set_column(1, 8, 8.3, center)
 
-        # write period number and subsequent tier rates
-        period_number = 1
         count = 0
-        for period in self.energy_period_list:
+        for period_number, period in enumerate(self.energy_period_list, start=1):
             wksht_rates.write(period_number, 0, period_number)
             for tier in period.tier_list:
                 wksht_rates.write(period_number, 1 + count, tier.get_rate())
                 count += 1
             count = 0
-            period_number += 1
         workbook.close()
 
     def read_calendar(self):

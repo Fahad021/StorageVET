@@ -67,9 +67,13 @@ class TellUser:
         try:
             os.makedirs(logs_path)
         except OSError:
-            print("Creation of the logs_path directory %s failed. Possibly already created." % logs_path) if verbose else None
+            print(
+                f"Creation of the logs_path directory {logs_path} failed. Possibly already created."
+            ) if verbose else None
         else:
-            print("Successfully created the logs_path directory %s " % logs_path) if verbose else None
+            print(
+                f"Successfully created the logs_path directory {logs_path} "
+            ) if verbose else None
         log_filename = logs_path / 'dervet_log.log'
         handler = logging.FileHandler(log_filename, mode='w')
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')

@@ -53,7 +53,7 @@ class ServiceAggregator:
 
         for service, params_input in value_stream_inputs_map.items():
             if params_input is not None:  # then Params class found an input
-                TellUser.info("Initializing: " + str(service))
+                TellUser.info(f"Initializing: {str(service)}")
                 self.value_streams[service] = value_stream_class_map[service](params_input)
         TellUser.debug("Finished adding value streams")
 
@@ -171,7 +171,14 @@ class ServiceAggregator:
         opt_functions = {}
         opt_constraints = []
         for value_stream in self.value_streams.values():
-            opt_functions.update(value_stream.objective_function(mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, annuity_scalar))
+            opt_functions |= value_stream.objective_function(
+                mask,
+                load_sum,
+                tot_variable_gen,
+                generator_out_sum,
+                net_ess_power,
+                annuity_scalar,
+            )
             opt_constraints += value_stream.constraints(mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, combined_rating)
         return opt_functions, opt_constraints
 
@@ -254,7 +261,7 @@ class ServiceAggregator:
             keys are the file name that the df will be saved with
 
         """
-        df_dict = dict()
+        df_dict = {}
         for der in self.value_streams.values():
-            df_dict.update(der.drill_down_reports(**kwargs))
+            df_dict |= der.drill_down_reports(**kwargs)
         return df_dict

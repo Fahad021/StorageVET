@@ -76,8 +76,7 @@ class API:
         Prints necessary identifying information of all tariffs that show from result page on OpenEI
 
         """
-        count = 1
-        for item in self.data["items"]:
+        for count, item in enumerate(self.data["items"], start=1):
             print("---------------------------------------------------", count)
             print("Utility.......", item["utility"])
             print("Name..........", item["name"])
@@ -90,7 +89,6 @@ class API:
             if "description" in item:
                 print("Description...", item["description"])
             print(" ")
-            count += 1
 
     def reset(self):
         """
@@ -119,9 +117,8 @@ class API:
 
         if "energyratestructure" in self.tariff["items"][0]:
             self.energyratestructure = self.tariff["items"][0]["energyratestructure"]
-            pcount = 1  # period count
             tcount = 1  # tier count
-            for p in self.energyratestructure:
+            for pcount, p in enumerate(self.energyratestructure, start=1):
                 self.energy_period_list.append(period.Period(pcount))
                 for i in p:
                     if "max" in i:
@@ -143,7 +140,6 @@ class API:
                     tcount += 1
                     self.reset()
                 tcount = 1
-                pcount += 1
 
     def energy_structure(self):
         """
@@ -153,15 +149,11 @@ class API:
         self.energyweekdayschedule = self.tariff["items"][0]["energyweekdayschedule"]
         self.energyweekendschedule = self.tariff["items"][0]["energyweekendschedule"]
         for year in self.energyweekdayschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
         for year in self.energyweekendschedule:
-            count = 0
-            for month in year:
+            for count, month in enumerate(year):
                 year[count] = month + 1
-                count += 1
 
     def calendar(self):
         """
@@ -199,8 +191,7 @@ class API:
             for period in self.energy_period_list:
                 row = [period.number]
                 for tier in period.tier_list:
-                    row.append(tier.max)
-                    row.append(tier.rate)
+                    row.extend((tier.max, tier.rate))
                 tariff_writer.writerow(row)
 
     def read_csv(self):

@@ -291,9 +291,7 @@ class Scenario(object):
             max_index = len(level_df['control'])
             predictive_level = np.repeat([], max_index)
             current_predictive_level_beginning = 0
-            current_predictive_level = 0
-
-            for control_level in level_df.control.unique():
+            for current_predictive_level, control_level in enumerate(level_df.control.unique()):
                 if predictive_horizon == 'year':
                     # needs to be a year from the beginning of the current predictive level, determine
                     # length of the year based on first index in subset
@@ -317,8 +315,6 @@ class Scenario(object):
                 update_levels = [dt_level.append(current_predictive_level) for dt_level in update_levels]
                 predictive_level[current_predictive_level_beginning, current_predictive_level_end] = update_levels
                 current_predictive_level_beginning = np.sum(level_df.control == control_level)
-                # increase CURRENT_PREDICTIVE_LEVEL
-                current_predictive_level += 1
             level_df['predictive'] = predictive_level
         return level_df
 
@@ -456,14 +452,13 @@ class Scenario(object):
                 start = time.time()
                 prob.solve(verbose=self.verbose_opt, solver=cvx.GLPK_MI)
                 end = time.time()
-                TellUser.info("Time it takes for solver to finish: " + str(end - start))
             else:
                 start = time.time()
                 # ECOS is default sovler and seems to work fine here
                 prob.solve(verbose=self.verbose_opt, solver=cvx.ECOS_BB)
                 end = time.time()
                 TellUser.debug("ecos solver")
-                TellUser.info("Time it takes for solver to finish: " + str(end - start))
+            TellUser.info(f"Time it takes for solver to finish: {str(end - start)}")
         except (cvx.error.SolverError, RuntimeError) as cvx_error_msg:
             TellUser.error("The solver was unable to find a solution.")
         return prob, obj_expression, cvx_error_msg
@@ -484,7 +479,7 @@ class Scenario(object):
         # save solver used
         self.solvers.append(prob.solver_stats.solver_name)
 
-        if (prob.status == 'infeasible') or (prob.status == 'unbounded'):
+        if prob.status in ['infeasible', 'unbounded']:
             # tell the user and throw an error specific to the problem being infeasible/unbounded
             error_msg = f'Optimization window {opt_window_num} was {prob.status}. No solution found. Look in *.log for for information'
             TellUser.error(cvx_error_msg)

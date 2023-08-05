@@ -42,8 +42,7 @@ def run_case(model_param_location: str):
 
 def check_initialization(model_param_location: str):
     print(f"Testing {model_param_location}...")
-    case = StorageVET(model_param_location, True)
-    return case
+    return StorageVET(model_param_location, True)
 
 
 def assert_file_exists(model_results, results_file_name='timeseries_results'):

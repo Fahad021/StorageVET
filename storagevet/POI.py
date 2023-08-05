@@ -162,7 +162,7 @@ class POI:
         for der_instance in self.active_ders:
             if der_instance.technology_type == 'Energy Storage System':
                 combined_rating += der_instance.dis_max_rated
-            if der_instance.technology_type == 'Generator':
+            elif der_instance.technology_type == 'Generator':
                 combined_rating += der_instance.rated_power
         return combined_rating
 
@@ -176,7 +176,7 @@ class POI:
         for der_instance in self.active_ders:
             if der_instance.technology_type == 'Energy Storage System':
                 combined_rating += der_instance.dis_max_rated
-            if der_instance.technology_type == 'Generator':
+            elif der_instance.technology_type == 'Generator':
                 combined_rating += der_instance.rated_power
         return combined_rating
 
@@ -218,7 +218,7 @@ class POI:
             # add all operational constraints
             constraint_list += der_instance.constraints(mask)
             # add DER cost funcs
-            obj_expression.update(der_instance.objective_function(mask, annuity_scalar))
+            obj_expression |= der_instance.objective_function(mask, annuity_scalar)
             if der_instance.tag == 'PV':
                 if not der_instance.grid_charge:
                     allow_charge_from_grid = False
@@ -344,7 +344,7 @@ class POI:
             tuple[0] are the file name that the df will be saved with
 
         """
-        df_dict = dict()
+        df_dict = {}
         for der in self.der_list:
-            df_dict.update(der.drill_down_reports(**kwargs))
+            df_dict |= der.drill_down_reports(**kwargs)
         return df_dict

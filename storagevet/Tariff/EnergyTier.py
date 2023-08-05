@@ -43,13 +43,13 @@ class Tier:
         """
         if self.max is not None:
             if self.unit is not None:
-                print("Tier " + str(self.number) + ": Max Usage: " + str(self.max) + " " + self.unit)
+                print(f"Tier {str(self.number)}: Max Usage: {str(self.max)} {self.unit}")
             else:
-                print("Tier " + str(self.number) + ": Max Usage: " + str(self.max))
+                print(f"Tier {str(self.number)}: Max Usage: {str(self.max)}")
 
         if self.rate is not None:
             if self.unit is not None:
-                print("Tier " + str(self.number) + ": Rate: $" + str(self.rate) + " /" + self.unit)
+                print(f"Tier {str(self.number)}: Rate: ${str(self.rate)}" + " /" + self.unit)
             else:
                 print("Tier " + str(self.number) + ": Rate: $" + str(self.rate))
 

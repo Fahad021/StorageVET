@@ -177,11 +177,13 @@ class RotatingGenerator(DER):
             self.costs (Dict): Dict of objective costs
         """
         total_out = self.variables_dict['elec'] + self.variables_dict['udis']
-        costs = {
+        return {
             self.name + ' fixed': self.fixed_om * annuity_scalar,
-            self.name + ' variable': cvx.sum(self.variable_om * self.dt * annuity_scalar * total_out),
+            self.name
+            + ' variable': cvx.sum(
+                self.variable_om * self.dt * annuity_scalar * total_out
+            ),
         }
-        return costs
 
     def constraints(self, mask):
         """ Builds the master constraint list for the subset of timeseries data being optimized.

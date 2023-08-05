@@ -178,8 +178,11 @@ class ValueStream:
         Returns: the case where the systems would end up with more energy than expected
 
         """
-        stored = cvx.Parameter(value=np.zeros(sum(mask)), shape=sum(mask), name=f'uEstoredZero{self.name}')
-        return stored
+        return cvx.Parameter(
+            value=np.zeros(sum(mask)),
+            shape=sum(mask),
+            name=f'uEstoredZero{self.name}',
+        )
 
     def worst_case_uenergy_provided(self, mask):
         """ the amount of energy, from the current SOE that needs to be reserved for this value stream
@@ -194,8 +197,11 @@ class ValueStream:
         Returns: the case where the systems would end up with less energy than expected
 
         """
-        provided = cvx.Parameter(value=np.zeros(sum(mask)), shape=sum(mask), name=f'uEprovidedZero{self.name}')
-        return provided
+        return cvx.Parameter(
+            value=np.zeros(sum(mask)),
+            shape=sum(mask),
+            name=f'uEprovidedZero{self.name}',
+        )
 
     def objective_function(self, mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, annuity_scalar=1):
         """ Generates the full objective function, including the optimization variables.
@@ -294,8 +300,7 @@ class ValueStream:
 
         """
         opt_years = [pd.Period(year=item, freq='y') for item in opt_years]
-        proforma = pd.DataFrame(index=opt_years)
-        return proforma
+        return pd.DataFrame(index=opt_years)
 
     def min_regulation_up(self):
         return 0

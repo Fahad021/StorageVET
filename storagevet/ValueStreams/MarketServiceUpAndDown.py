@@ -355,10 +355,10 @@ class MarketServiceUpAndDown(ValueStream):
             case where the systems would end up with less energy than expected
 
         """
-        stored \
-            = self.variables['down_ch'] * self.duration \
+        return (
+            self.variables['down_ch'] * self.duration
             + self.variables['down_dis'] * self.duration
-        return stored
+        )
 
     def worst_case_uenergy_provided(self, mask):
         """ the amount of energy, from the current SOE that needs to be
@@ -378,10 +378,10 @@ class MarketServiceUpAndDown(ValueStream):
             case where the systems would end up with less energy than expected
 
         """
-        provided \
-            = self.variables['up_ch'] * -self.duration \
+        return (
+            self.variables['up_ch'] * -self.duration
             + self.variables['up_dis'] * -self.duration
-        return provided
+        )
 
     def timeseries_report(self):
         """ Summaries the optimization results for this Value Stream.

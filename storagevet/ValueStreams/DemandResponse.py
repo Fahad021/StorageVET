@@ -203,10 +203,7 @@ class DemandResponse(ValueStream):
         active_event_mask = pd.Series(np.repeat(False, len(index)), index=index)
         for date in disp_days.index:
             active_event_mask = (index.date == date) & active | active_event_mask
-        # create index for power constraint
-        indx_dr_days = active_event_mask.loc[active_event_mask].index
-
-        return indx_dr_days
+        return active_event_mask.loc[active_event_mask].index
 
     def day_of_event_scheduling(self):
         """ If the DR events are scheduled the day of, then the STORAGE operator must prepare for an event to occur
@@ -253,8 +250,9 @@ class DemandResponse(ValueStream):
         NOTE: RA has this same method too  -HN
 
         """
-        qc = sum(der_instance.qualifying_capacity(length) for der_instance in der_lst)
-        return qc
+        return sum(
+            der_instance.qualifying_capacity(length) for der_instance in der_lst
+        )
 
     def qualifying_energy(self):
         """ Calculated the qualifying energy to be able to participate in an event.
@@ -281,17 +279,17 @@ class DemandResponse(ValueStream):
         Returns: CVXPY parameter/variable
 
         """
-        if not self.day_ahead:
-            # make sure we will be able to discharge if called upon (in addition to other market services)
-            subs = mask.loc[mask]
-            dis_reservation = pd.Series(np.zeros(sum(mask)), index=subs.index)
-            subs_qc = self.qc.loc[self.qc.index.isin(subs.index)]
-            if not subs_qc.empty:
-                dis_reservation.update(subs_qc)
-            down = cvx.Parameter(shape=sum(mask), value=dis_reservation.values, name='DischargeResDR')
-        else:
-            down = super().p_reservation_discharge_up(mask)
-        return down
+        if self.day_ahead:
+            return super().p_reservation_discharge_up(mask)
+        # make sure we will be able to discharge if called upon (in addition to other market services)
+        subs = mask.loc[mask]
+        dis_reservation = pd.Series(np.zeros(sum(mask)), index=subs.index)
+        subs_qc = self.qc.loc[self.qc.index.isin(subs.index)]
+        if not subs_qc.empty:
+            dis_reservation.update(subs_qc)
+        return cvx.Parameter(
+            shape=sum(mask), value=dis_reservation.values, name='DischargeResDR'
+        )
 
     def proforma_report(self, opt_years, apply_inflation_rate_func, fill_forward_func, results):
         """ Calculates the proforma that corresponds to participation in this value stream

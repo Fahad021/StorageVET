@@ -95,18 +95,18 @@ class Params:
         cls.timeseries_error = False
         cls.monthly_error = False
         # SENSITIVITY contains all sensitivity variables as keys and their values as lists
-        cls.sensitivity = {"attributes": dict(),
-                           "coupled": list()}
+        cls.sensitivity = {"attributes": {}, "coupled": []}
         # CASE DEFINITIONS each row specifies the value of each attribute for sensitivity analysis
         cls.case_definitions = pd.DataFrame()
-        cls.instances = dict()
+        cls.instances = {}
         # holds the data of all the time series usd in sensitivity analysis
         cls.referenced_data = {
-            "time_series": dict(),
-            "monthly_data": dict(),
-            "customer_tariff": dict(),
-            "cycle_life": dict(),
-            "yearly_data": dict()}
+            "time_series": {},
+            "monthly_data": {},
+            "customer_tariff": {},
+            "cycle_life": {},
+            "yearly_data": {},
+        }
 
         timestamp_now = datetime.now().strftime('%Y-%m-%d_%H%M%S')
         cls.results_inputs = {'label': '',
@@ -122,25 +122,22 @@ class Params:
 
         # 2) CONVERT CSV INTO JSON
         filename = Path(filename)
-        if '.csv' == filename.suffix:
+        if filename.suffix == '.csv':
             filename = cls.csv_to_json(filename)
 
         cls.filename = filename
         # 3) LOAD DIRECT DATA FROM JSON/XML
-        if '.json' == filename.suffix:
+        if filename.suffix == '.json':
             cls.json_tree = json.load(open(filename))
             cls.json_tree = cls.json_tree.get("tags")
             if cls.json_tree is None:
                 raise Exception("Given model parameter is empty.")
-        elif '.xml' == filename.suffix:
+        elif filename.suffix == '.xml':
             cls.xmlTree = eT.parse(filename)
         else:
             raise ModelParameterError("Please indicate a CSV, XML, or JSON to read the case from.")
 
-        # read Results tag and set as class attribute
-        # NOTE: sensitivity analysis does not work on the 'Results' tag. this is by design.
-        result_dic = cls.flatten_tag_id(cls.read_and_validate('Results'))
-        if result_dic:
+        if result_dic := cls.flatten_tag_id(cls.read_and_validate('Results')):
             cls.results_inputs = result_dic
             cls.results_inputs['errors_log_path'] = Path(cls.results_inputs['errors_log_path'])
         TellUser.create_log(cls.results_inputs['errors_log_path'], verbose)
@@ -201,11 +198,7 @@ class Params:
         if 'ID' not in model_parameter_pd.columns:
             model_parameter_pd['ID'] = np.repeat('', len(model_parameter_pd))
         # write the header of the json file
-        input_dct = {
-            "name": str(None),
-            "type": "Expert",
-            "tags": dict()
-        }
+        input_dct = {"name": str(None), "type": "Expert", "tags": {}}
         tag_dict = input_dct["tags"]
         # specify columns to place
         key_attributes = set(model_parameter_pd.columns) - {'Tag', 'Key', 'ID', 'Units',
@@ -219,7 +212,7 @@ class Params:
         # outer loop for each tag/object and active status, i.e. Scenario, Battery, DA, etc.
         for tag in model_parameter_pd.Tag.unique():
             # add tag to TAG_DICT and initialize dict
-            tag_dict[tag] = dict()
+            tag_dict[tag] = {}
             # select all TAG rows
             tag_sub = model_parameter_pd.loc[model_parameter_pd.Tag == tag]
             # loop through each unique value in ID
@@ -227,7 +220,7 @@ class Params:
                 # select rows with given ID_STR
                 id_tag_sub = tag_sub.loc[tag_sub.ID == id_str]
                 # add id to dictionary for TAG
-                key_tag_id_dict = dict()
+                key_tag_id_dict = {}
                 tag_dict[tag][str(id_str)] = {
                     "active": id_tag_sub.Active.iloc[0].strip(),
                     "keys": key_tag_id_dict
@@ -236,7 +229,7 @@ class Params:
                 for ind, row in id_tag_sub.iterrows():
                     if row['Key'] is np.nan:
                         continue
-                    key_tag_id_dict[row['Key'].strip()] = dict()
+                    key_tag_id_dict[row['Key'].strip()] = {}
                     attr_key_tag_id_dict = key_tag_id_dict[row['Key'].strip()]
                     # inner loop for specifying elements Value, Type, Coupled, etc.
                     for attr in key_attributes:
@@ -303,9 +296,9 @@ class Params:
             service/technology if the service or technology is not implemented in this case,
             then empty dictionary is returned.
         """
-        if '.json' == cls.filename.suffix:
+        if cls.filename.suffix == '.json':
             return cls.read_and_validate_json(name)
-        if '.xml' == cls.filename.suffix:
+        if cls.filename.suffix == '.xml':
             # TODO: feel free to remove this feature if we need to change read_and_validate
             return cls.read_and_validate_xml(name)
 
@@ -430,11 +423,11 @@ class Params:
             # Checks if the first character is 'y' or '1', if true it creates a dictionary.
             active_tag = tag_attrib.get('active')
             if active_tag is not None and (active_tag[0].lower() in ["y", "1"]):
-                dictionary = {}
                 # grab the user given keys
                 user_keys = tag_attrib.get('keys')
                 # iterate through each key required by the schema
                 schema_key_dict = schema_tag.get("keys")
+                dictionary = {}
                 for schema_key_name, schema_key_attr in schema_key_dict.items():
                     # Check if attribute is in the schema
                     try:
@@ -455,10 +448,13 @@ class Params:
                             corresponding_key_value = corresponding_key.get('opt_value')
                             if corresponding_key_value == 'nan':
                                 # corresponding key was not given a value, so error
-                                cls.report_warning("not allowed", tag=name, key=schema_key_name,
-                                                   value=value,
-                                                   allowed_values="Something other than 'nan'. " +
-                                                                  f" Or define {optional}")
+                                cls.report_warning(
+                                    "not allowed",
+                                    tag=name,
+                                    key=schema_key_name,
+                                    value=value,
+                                    allowed_values=f"Something other than 'nan'.  Or define {optional}",
+                                )
                         else:
                             # value cannot be nan (error)
                             cls.report_warning("not allowed", tag=name, key=schema_key_name,
@@ -479,7 +475,7 @@ class Params:
                     if key_sensitivity is not None:
                         key_sensitivity_active = key_sensitivity.get('active')
                         if key_sensitivity_active is not None and \
-                                (key_sensitivity_active[0].lower() in ["y","1"]):
+                                    (key_sensitivity_active[0].lower() in ["y","1"]):
                             tag_key_id = (name, schema_key_name, tag_id)
                             # parse the values for sensitivity analysis
                             unparsed_sensitivity_values = key_sensitivity.get('value')
@@ -736,9 +732,7 @@ class Params:
         # (looking for TAG strings that are of the form `Tag-ID`, else assume .....)
         coupled_with_id = [id_str if x == tag else '' if x.find('-') < 0 else x[:x.find('-')] for x
                            in coupled_with_tag]
-        # create set of tuples (tag, key, id) of tag-key values that the given key is coupled with
-        tag_key_set = set(zip(coupled_with_tag, coupled_with_key, coupled_with_id))
-        return tag_key_set
+        return set(zip(coupled_with_tag, coupled_with_key, coupled_with_id))
 
     @classmethod
     def fetch_coupled(cls, coupled_properties, tag_key_id):
@@ -804,13 +798,17 @@ class Params:
             return True
 
         if not len(slf.Battery) and not len(slf.PV) and not len(slf.CAES) \
-                and not len(slf.ICE) and not len(slf.Load) and not other_ders_active:
+                    and not len(slf.ICE) and not len(slf.Load) and not other_ders_active:
             TellUser.error('You forgot to select a technology to include in the analysis. ' +
                            'Please define an energy source.')
             return True
 
         # require +1 energy market participation when participting in any ancillary services
-        if (slf.SR or slf.NSR or slf.FR or slf.LF) and not (slf.retailTimeShift or slf.DA):
+        if (
+            (slf.SR or slf.NSR or slf.FR or slf.LF)
+            and not slf.retailTimeShift
+            and not slf.DA
+        ):
             TellUser.error('We require energy market participation when participating in ' +
                            'ancillary services (ie SR, NSR, FR, LF). Please activate the DA ' +
                            'service or the RT service and run again.')
@@ -906,7 +904,7 @@ class Params:
         # sift out sensitivity cases with coupling filter
         for sensitivity_case in all_sensitivity_cases:
             hold = True
-            for num, coupled_set in enumerate(cls.sensitivity['coupled']):
+            for coupled_set in cls.sensitivity['coupled']:
                 # grab a random property in the COUPLED_SET to know the value length
                 rand_prop = next(iter(coupled_set))
                 coupled_set_value_length = len(sense[rand_prop])
@@ -950,13 +948,12 @@ class Params:
         prop_lens = set(map(len, [cls.sensitivity['attributes'][x] for x in coupled_set]))
         if len(prop_lens) == 1:
             return True  # only one unique value length in the set means all list equal length
-        else:
-            no_cases = np.prod(list(prop_lens))
-            message = f"coupled sensitivity arrays related to {list(coupled_set)[0]} do not " \
+        no_cases = np.prod(list(prop_lens))
+        message = f"coupled sensitivity arrays related to {list(coupled_set)[0]} do not " \
                       "have the same length; the total number of cases generated from this " \
                       f'coupled_set is {no_cases} because coupling ability for this is ignored.'
-            TellUser.warning(message)
-            return False
+        TellUser.warning(message)
+        return False
 
     @staticmethod
     def read_from_file(name, filename, ind_col=None):
@@ -983,7 +980,7 @@ class Params:
             infer_dttm = name == 'time_series'
 
             # select read function based on file type
-            func = pd.read_csv if ".csv" == Path(filename).suffix else pd.read_excel
+            func = pd.read_csv if Path(filename).suffix == ".csv" else pd.read_excel
 
             try:
                 raw = func(filename, parse_dates=parse_dates, index_col=ind_col,
@@ -1022,10 +1019,10 @@ class Params:
                 row = cls.case_definitions.iloc[index]
                 for col in row.index:
                     case.modify_attribute(tup=col, value=row[col])
-                dictionary.update({index: case})
+                dictionary[index] = case
                 case = copy.deepcopy(cls.template)
         else:
-            dictionary.update({0: case})
+            dictionary[0] = case
 
         cls.instances = dictionary
 
@@ -1179,16 +1176,16 @@ class Params:
         """
         frequency = ''
         dt_truncated = truncate_float(dt)
-        if dt_truncated == 1.0:
-            frequency = 'H'
-        if dt_truncated == 0.5:
-            frequency = '30min'
-        if dt_truncated == .25:
-            frequency = '15min'
-        if dt_truncated == .083:
-            frequency = '5min'
-        if dt_truncated == .016:
+        if dt_truncated == 0.016:
             frequency = '1min'
+        elif dt_truncated == 0.083:
+            frequency = '5min'
+        elif dt_truncated == 0.25:
+            frequency = '15min'
+        elif dt_truncated == 0.5:
+            frequency = '30min'
+        elif dt_truncated == 1.0:
+            frequency = 'H'
         return frequency
 
     def process_time_series(self, time_series, freq, dt, opt_years):
@@ -1211,7 +1208,7 @@ class Params:
         if first_hour == 1 or (first_hour == 0 and first_min != 0):
             time_series = time_series.sort_index()  # make sure all the time_stamps are in order
             yr_included = time_series.index.shift(-1, freq).year.unique()
-        elif first_hour == 0 and first_min == 0:
+        elif first_hour == 0:
             time_series = time_series.sort_index()  # make sure all the time_stamps are in order
             yr_included = time_series.index.year.unique()
         else:
@@ -1225,10 +1222,14 @@ class Params:
         expected_data_length = sum(hours_in_years) / dt
         if len(time_series) != expected_data_length:
             self.record_timeseries_error(
-                f"The expected data length does not match with the length of the given data " +
-                f"({len(time_series)}).\nWe detected {yr_included.values} are included, and " +
-                f"{[data_year for data_year in yr_included if is_leap_yr(data_year)]}" +
-                f" are leap years --> sum({hours_in_years}) / {dt} = {expected_data_length}")
+                (
+                    (
+                        f"The expected data length does not match with the length of the given data ({len(time_series)}).\nWe detected {yr_included.values} are included, and "
+                        + f"{[data_year for data_year in yr_included if is_leap_yr(data_year)]}"
+                    )
+                    + f" are leap years --> sum({hours_in_years}) / {dt} = {expected_data_length}"
+                )
+            )
             return time_series
 
         # replace time_series index with pandas formatted datetime index
@@ -1242,8 +1243,8 @@ class Params:
         time_series_index = time_series.index
         if set(opt_years) != set(yr_included):
             self.record_timeseries_error(
-                f"The 'opt_years' input should coinside with data in the " +
-                f"Time Series file. {opt_years} != {set(yr_included)}")
+                f"The 'opt_years' input should coinside with data in the Time Series file. {opt_years} != {set(yr_included)}"
+            )
         return time_series
 
     @classmethod
@@ -1280,8 +1281,8 @@ class Params:
             yr_included = monthly_data.index.year.unique()
             if set(opt_years) != set(yr_included):
                 self.record_monthly_error(
-                    f"The 'opt_years' input should coinside with data in the " +
-                    f"Monthly file. {opt_years} != {set(yr_included)}")
+                    f"The 'opt_years' input should coinside with data in the Monthly file. {opt_years} != {set(yr_included)}"
+                )
         return monthly_data
 
     @classmethod
@@ -1343,32 +1344,26 @@ class Params:
             # then no name_lst was inherited so initialize as list type
             names_list = []
 
+        natural_gas_price_name = "Natural Gas Price ($/MillionBTU)"
         # validation checks for a CAES's parameters
         for id_str, caes_inputs in self.CAES.items():
             names_list.append(caes_inputs['name'])
             if caes_inputs['ch_min_rated'] > caes_inputs['ch_max_rated']:
-                self.record_input_error(f"CAES #{id_str} ch_max_rated < " +
-                                        f"ch_min_rated. ch_max_rated should " +
-                                        f"be greater than ch_min_rated")
+                self.record_input_error(
+                    f"CAES #{id_str} ch_max_rated < ch_min_rated. ch_max_rated should be greater than ch_min_rated"
+                )
 
             if caes_inputs['dis_min_rated'] > caes_inputs['dis_max_rated']:
-                self.record_input_error(f"CAES #{id_str} dis_max_rated < " +
-                                        f"dis_min_rated. dis_max_rated " +
-                                        f"should be greater than " +
-                                        f"dis_min_rated")
+                self.record_input_error(
+                    f"CAES #{id_str} dis_max_rated < dis_min_rated. dis_max_rated should be greater than dis_min_rated"
+                )
             # add monthly data and scenario case parameters to CAES dictionary
             caes_inputs.update({'binary': binary, 'dt': dt})
-            natural_gas_price_name = "Natural Gas Price ($/MillionBTU)"
-            if id_str == "":
-                error_msg = f"CAES #{id_str} missing '" \
-                            f"{natural_gas_price_name}" \
-                            f"' from monthly input. " +\
-                            "Please include a monthly fuel price."
-            else:
-                error_msg = f"CAES #{id_str} missing '" \
-                            f"{natural_gas_price_name}/{id_str}" \
-                            f"' from monthly input. " + \
-                            "Please include a monthly fuel price."
+            error_msg = (
+                f"CAES #{id_str} missing '{natural_gas_price_name}' from monthly input. Please include a monthly fuel price."
+                if id_str == ""
+                else f"CAES #{id_str} missing '{natural_gas_price_name}/{id_str}' from monthly input. Please include a monthly fuel price."
+            )
             fuel_cost = self.grab_column(monthly_data, natural_gas_price_name,
                                          error_msg, id_str)
             caes_inputs['fuel_cost'] = self.monthly_to_timeseries(freq,
@@ -1378,9 +1373,9 @@ class Params:
         for id_str, bat_input in self.Battery.items():
             # max ratings should be greater than min rating - power and energy
             if bat_input['ch_min_rated'] > bat_input['ch_max_rated']:
-                self.record_input_error(f"Battery #{id_str} ch_max_rated < " +
-                                        f"ch_min_rated. ch_max_rated should " +
-                                        f"be greater than ch_min_rated")
+                self.record_input_error(
+                    f"Battery #{id_str} ch_max_rated < ch_min_rated. ch_max_rated should be greater than ch_min_rated"
+                )
 
             if bat_input['dis_min_rated'] > bat_input['dis_max_rated']:
                 self.record_input_error(
@@ -1402,9 +1397,14 @@ class Params:
         for id_str, pv_input_tree in self.PV.items():
             if len(self.PV.keys()) == 1:
                 try:
-                    pv_input_tree.update({'rated gen': time_series.loc[:, f'PV Gen (kW/rated kW)'],
-                                          # 'growth': scenario['def_growth'],
-                                          'dt': dt})
+                    pv_input_tree.update(
+                        {
+                            'rated gen': time_series.loc[
+                                :, 'PV Gen (kW/rated kW)'
+                            ],
+                            'dt': dt,
+                        }
+                    )
                     continue
                 except KeyError:
                     pass
@@ -1453,7 +1453,7 @@ class Params:
                          }
             col_name = "Site Load (kW)"
             error_msg = f"Missing '{col_name}' from timeseries input. " \
-                        f"Please include a site load."
+                            f"Please include a site load."
             site_load_data = self.grab_column(time_series, col_name,
                                               error_msg, '')
             self.Load[key]['site_load'] = site_load_data
@@ -1507,10 +1507,10 @@ class Params:
         """
         scenario = self.Scenario  # dictionary of scenario inputs
         monthly_data = scenario['monthly_data']
-        time_series = scenario['time_series']
         dt = scenario['dt']
         freq = scenario['frequency']
 
+        time_series = scenario['time_series']
         if self.Deferral is not None:
             try:
                 self.Deferral.update({
@@ -1701,8 +1701,8 @@ class Params:
                           "Aggregate Energy Max (kWh)", "Aggregate Energy Min (kWh)"]
             if not time_series.columns.isin(input_cols).any():
                 self.record_input_error(
-                    f"User has not incldued any of the following: {input_cols}" +
-                    "Please add atleast one and run again.")
+                    f"User has not incldued any of the following: {input_cols}Please add atleast one and run again."
+                )
             power = time_series.loc[:, list(np.intersect1d(input_cols[:-2], list(time_series)))]
             energy = time_series.loc[:, list(np.intersect1d(input_cols[-2:], list(time_series)))]
             for col in power.columns:
@@ -1720,17 +1720,17 @@ class Params:
             tariff = self.Finance['customer_tariff']
             retail_prices = Financial.calc_retail_energy_price(tariff, scenario['frequency'],
                                                                min(scenario['opt_years']))
-            if self.retailTimeShift is not None:
-                self.retailTimeShift.update({'price': retail_prices.loc[:, 'p_energy'],
-                                             'tariff': tariff.loc[tariff.Charge.apply(
-                                                 (lambda x: x.lower())) == 'energy', :],
-                                             'dt': dt})
-            if self.DCM is not None:
-                self.DCM.update({'tariff': tariff.loc[
-                                           tariff.Charge.apply((lambda x: x.lower())) == 'demand',
-                                           :],
-                                 'billing_period': retail_prices.loc[:, 'billing_period'],
-                                 'dt': dt})
+        if self.retailTimeShift is not None:
+            self.retailTimeShift.update({'price': retail_prices.loc[:, 'p_energy'],
+                                         'tariff': tariff.loc[tariff.Charge.apply(
+                                             (lambda x: x.lower())) == 'energy', :],
+                                         'dt': dt})
+        if self.DCM is not None:
+            self.DCM.update({'tariff': tariff.loc[
+                                       tariff.Charge.apply((lambda x: x.lower())) == 'demand',
+                                       :],
+                             'billing_period': retail_prices.loc[:, 'billing_period'],
+                             'dt': dt})
 
         TellUser.info("Successfully prepared the value-stream (services)")
 

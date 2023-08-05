@@ -83,5 +83,5 @@ class StorageVET:
         Result.sensitivity_summary()
 
         ends = time.time()
-        TellUser.info("Full runtime: " + str(ends - starts))
+        TellUser.info(f"Full runtime: {str(ends - starts)}")
         return Result

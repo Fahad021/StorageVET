@@ -44,9 +44,7 @@ class Visualization:
         """
         input_tags = self.params_class.json_tree
         tree = self.params_class.xmlTree
-        treeRoot = None
-        if tree is not None:
-            treeRoot = tree.getroot()
+        treeRoot = tree.getroot() if tree is not None else None
         schema = self.params_class.schema_dct
 
         TellUser.info("Printing summary table for class Params")
@@ -96,7 +94,4 @@ class Visualization:
         tag_dicts = schema_dict.get("tags")
         for tag_name, tag_attrib in tag_dicts.items():
             if tag_name == component_name:
-                if tag_attrib.get('type') is None:
-                    return "other"
-                else:
-                    return tag_attrib.get('type')
+                return "other" if tag_attrib.get('type') is None else tag_attrib.get('type')

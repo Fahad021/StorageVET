@@ -253,7 +253,7 @@ class Deferral(ValueStream):
         """
         self.last_year = last_year
         self.year_failed = failed_year
-        TellUser.info(f'{self.name} year failed set to: ' + str(self.year_failed))
+        TellUser.info(f'{self.name} year failed set to: {str(self.year_failed)}')
 
     def constraints(self, mask, load_sum, tot_variable_gen, generator_out_sum, net_ess_power, combined_rating):
         """Default build constraint list method. Used by services that do not have constraints.

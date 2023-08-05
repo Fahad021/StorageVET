@@ -88,8 +88,8 @@ class DemandChargeReduction(ValueStream):
 
                 years = yr.year - source_year.year
 
-                first_day = '1/1/' + str(yr.year)
-                last_day = '1/1/' + str(yr.year + 1)
+                first_day = f'1/1/{str(yr.year)}'
+                last_day = f'1/1/{str(yr.year + 1)}'
 
                 new_index = pd.date_range(start=first_day, end=last_day, freq=frequency, closed='left')
                 size = new_index.size

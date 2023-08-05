@@ -234,7 +234,7 @@ class Financial:
         time_mask = (tariff_row['Start Time'] <= he_minute) & (he_minute <= tariff_row['End Time'])
         weekday_mask = True
         exclud_mask = False
-        if not tariff_row['Weekday?'] == 2:  # if not (apply to weekends and weekdays)
+        if tariff_row['Weekday?'] != 2:  # if not (apply to weekends and weekdays)
             weekday_mask = tariff_row['Weekday?'] == (weekday < SATURDAY).astype('int64')
         if not np.isnan(tariff_row['Excluding Start Time']) and not np.isnan(tariff_row['Excluding End Time']):
             exclud_mask = (tariff_row['Excluding Start Time'] <= he_minute) & (he_minute <= tariff_row['Excluding End Time'])
@@ -486,9 +486,11 @@ class Financial:
         # NPV for growth_cols
         for col in pro_forma.columns:
             if col == 'Yearly Net Value':
-                npv_dict.update({'Lifetime Present Value': [np.npv(self.npv_discount_rate, pro_forma[col].values)]})
+                npv_dict['Lifetime Present Value'] = [
+                    np.npv(self.npv_discount_rate, pro_forma[col].values)
+                ]
             else:
-                npv_dict.update({col: [np.npv(self.npv_discount_rate, pro_forma[col].values)]})
+                npv_dict[col] = [np.npv(self.npv_discount_rate, pro_forma[col].values)]
         self.npv = pd.DataFrame(npv_dict, index=pd.Index(['NPV']))
 
     def payback_report(self, technologies, proforma, opt_years):
@@ -524,10 +526,7 @@ class Financial:
             In the case of multiple opt_years, do not report a payback period for now.
 
         """
-        capex = 0
-        for tech in techologies:
-            capex += tech.get_capex(solution=True)
-
+        capex = sum(tech.get_capex(solution=True) for tech in techologies)
         first_opt_year = min(opt_years)
         yearlynetbenefit = proforma.iloc[:, :-1].loc[pd.Period(year=first_opt_year, freq='y'), :].sum()
 
@@ -558,12 +557,10 @@ class Financial:
 
         if self.npv_discount_rate:
             dr = self.npv_discount_rate
-            discounted_pp = np.log(1/(1-(dr*payback_period)))/np.log(1+dr)
+            return np.log(1/(1-(dr*payback_period)))/np.log(1+dr)
         else:
             # if discount_rate = 0, then the equation simplifies to np.log(1)/np.log(1)-- which is undefined, so we return nan
-            discounted_pp = 'nan'
-
-        return discounted_pp
+            return 'nan'
 
     def report_dictionary(self):
         """
@@ -572,11 +569,12 @@ class Financial:
             keys are the file name that the df will be saved with
 
         """
-        df_dict = dict()
-        df_dict['pro_forma'] = self.pro_forma
-        df_dict['npv'] = self.npv
-        df_dict['cost_benefit'] = self.cost_benefit
-        df_dict['payback'] = self.payback
+        df_dict = {
+            'pro_forma': self.pro_forma,
+            'npv': self.npv,
+            'cost_benefit': self.cost_benefit,
+            'payback': self.payback,
+        }
         if self.customer_sided:
             df_dict['adv_monthly_bill'] = self.billing_period_bill
             df_dict['simple_monthly_bill'] = self.monthly_bill
